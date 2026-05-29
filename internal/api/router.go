@@ -25,8 +25,7 @@ func SetupRouter(h *Handler) *gin.Engine {
 
 	// Página de bienvenida visual en HTML
 	r.GET("/", func(c *gin.Context) {
-		c.Header("Content-Type", "text/html; charset=utf-8")
-		c.String(200, homeHTML)
+		c.Data(200, "text/html; charset=utf-8", []byte(homeHTML))
 	})
 
 	api := r.Group("/api")
