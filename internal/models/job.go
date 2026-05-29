@@ -212,9 +212,17 @@ func (r *JobRepository) List(status string, limit int) ([]*Job, error) {
 	return jobs, nil
 }
 
-// Stats devuelve conteo de jobs por estado
+// Stats devuelve conteo de jobs por estado usando query directa (sin depender de la vista)
 func (r *JobRepository) Stats() (map[string]interface{}, error) {
-	rows, err := r.db.Query(`SELECT status, total, avg_seconds FROM jobs_stats`)
+	query := `
+		SELECT
+			status,
+			COUNT(*) AS total,
+			COALESCE(AVG(EXTRACT(EPOCH FROM (processed_at - created_at)))::INT, 0) AS avg_seconds
+		FROM jobs
+		GROUP BY status`
+
+	rows, err := r.db.Query(query)
 	if err != nil {
 		return nil, err
 	}
@@ -224,13 +232,20 @@ func (r *JobRepository) Stats() (map[string]interface{}, error) {
 	for rows.Next() {
 		var status string
 		var total int
-		var avgSeconds sql.NullInt64
+		var avgSeconds int
 		if err := rows.Scan(&status, &total, &avgSeconds); err != nil {
 			return nil, err
 		}
 		result[status] = map[string]interface{}{
 			"total":       total,
-			"avg_seconds": avgSeconds.Int64,
+			"avg_seconds": avgSeconds,
+		}
+	}
+
+	// Asegurar que todos los estados aparezcan aunque no haya jobs
+	for _, s := range []string{"pending", "processing", "done", "failed"} {
+		if _, exists := result[s]; !exists {
+			result[s] = map[string]interface{}{"total": 0, "avg_seconds": 0}
 		}
 	}
 	return result, nil
