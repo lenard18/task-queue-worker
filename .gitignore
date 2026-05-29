@@ -1,0 +1,14 @@
+# Binario compilado
+task-queue-worker
+*.exe
+
+# Variables de entorno (NUNCA subir al repo)
+.env
+
+# Dependencias descargadas
+vendor/
+
+# IDE
+.idea/
+.vscode/
+*.swp
